@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neko and Matcha — Loyalty Program</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:        #16201A;
+    --ink-soft:   #47564C;
+    --paper:      #FAFAF6;
+    --paper-dim:  #F1F0E9;
+    --matcha:     #6B8F4E;
+    --matcha-deep:#465F30;
+    --matcha-pale:#DCE6CE;
+    --blush:      #E2A79A;
+    --hazel:      #B4884F;
+    --line:       rgba(22,32,26,0.13);
+    --radius:     4px;
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    margin:0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family:'Inter', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    letter-spacing:-0.015em;
+    margin:0;
+  }
+  .mono{ font-family:'Space Mono', monospace; }
+  a{ color:inherit; }
+  .wrap{ max-width: 1040px; margin:0 auto; padding:0 30px; }
+  /* ---------------- Header ---------------- */
+  header{ padding:28px 0; border-bottom:1px solid var(--line); }
+  header .wrap{ display:flex; align-items:center; justify-content:space-between; }
+  .logo{
+    display:flex; align-items:center; gap:10px;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700; font-size:1.12rem;
+    text-decoration:none; letter-spacing:-0.01em;
+  }
+  .logo svg{ width:24px; height:24px; flex-shrink:0; }
+  nav{ display:flex; gap:30px; align-items:center; }
+  nav a{
+    text-decoration:none; font-size:0.86rem; font-weight:500;
+    color: var(--ink-soft);
+    transition: color .18s ease;
+  }
+  nav a:hover{ color: var(--ink); }
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    background: var(--ink);
+    color: var(--paper);
+    border:none;
+    padding:13px 24px;
+    border-radius: var(--radius);
+    font-family:'Inter', sans-serif;
+    font-weight:600; font-size:0.9rem;
+    cursor:pointer; text-decoration:none;
+    transition: background .2s ease, transform .18s ease;
+  }
+  .btn:hover{ background: var(--matcha-deep); transform: translateY(-1px); }
+  .btn.small{ padding:9px 18px; font-size:0.82rem; }
+  .btn.ghost{
+    background:transparent; color:var(--ink);
+    border:1px solid var(--line);
+  }
+  .btn.ghost:hover{ background: var(--paper-dim); }
+  .btn:focus-visible, a:focus-visible, input:focus-visible, button:focus-visible{
+    outline:2px solid var(--matcha-deep); outline-offset:3px;
+  }
+  /* ---------------- Hero ---------------- */
+  .hero{ padding:64px 0 90px; }
+  .hero .wrap{
+    display:grid; grid-template-columns: 1.05fr 0.95fr;
+    gap:60px; align-items:center;
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'Space Mono', monospace;
+    font-size:0.72rem; font-weight:700;
+    letter-spacing:0.13em; text-transform:uppercase;
+    color: var(--matcha-deep);
+    margin-bottom:20px;
+  }
+  .eyebrow::before{
+    content:""; width:6px; height:6px; background: var(--matcha);
+    display:inline-block;
+  }
+  .hero h1{
+    font-size: clamp(2.3rem, 4.4vw, 3.4rem);
+    line-height:1.06;
+    color: var(--ink);
+  }
+  .hero p.lead{
+    margin-top:18px; font-size:1.04rem; line-height:1.65;
+    color: var(--ink-soft); max-width:44ch;
+  }
+  .hero-cta{ display:flex; gap:12px; margin-top:28px; flex-wrap:wrap; }
+  .hero-note{ font-size:0.82rem; color: var(--ink-soft); margin-top:16px; }
+  .footprint-tag{
+    display:inline-flex; align-items:center; gap:10px;
+    margin-top:26px;
+    padding:9px 14px 9px 10px;
+    border:1px solid var(--line);
+    border-radius:999px;
+    font-family:'Space Mono', monospace;
+    font-size:0.74rem;
+    color: var(--ink-soft);
+  }
+  .footprint-tag svg{ width:16px; height:16px; }
+  /* ====== CARD ANIMATION SYSTEM ====== */
+  .card-stage{
+    display:flex;
+    justify-content:center;
+    perspective: 900px;
+  }
+  /* Outer wrapper handles the gentle idle float — never touches opacity */
+  .card-float-wrap {
+    animation: none;
+  }
+  .card-float-wrap.floating {
+    animation: cardFloat 5s ease-in-out infinite;
+  }
+  @keyframes cardFloat {
+    0%, 100% { transform: translateY(0px); }
+    50%      { transform: translateY(-8px); }
+  }
+  .punchcard{
+    position:relative;
+    width:100%; max-width:370px;
+    background: var(--ink);
+    border-radius: 10px;
+    padding: 30px 26px 24px;
+    color: var(--paper);
+    /* Entry animation — card starts hidden, animates in */
+    opacity: 0;
+    transform: rotateY(16deg) rotateX(6deg) translateY(40px) scale(0.92);
+    animation: cardEntry 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
+    /* Smooth transitions for hover interactions */
+    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.5s ease;
+    transform-style: preserve-3d;
+    will-change: transform, opacity;
+  }
+  /* Once entry is done, JS adds this class to lock visibility */
+  .punchcard.entered {
+    opacity: 1;
+    animation: none;
+    transform: none;
+  }
+  @keyframes cardEntry {
+    0% {
+      opacity: 0;
+      transform: rotateY(16deg) rotateX(6deg) translateY(40px) scale(0.92);
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 1;
+      transform: rotateY(0deg) rotateX(0deg) translateY(0px) scale(1);
+    }
+  }
+  /* Soft ambient glow behind card */
+  .punchcard::before {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    border-radius: 18px;
+    background: radial-gradient(ellipse at 50% 60%, rgba(107,143,78,0.18) 0%, transparent 70%);
+    z-index: -1;
+    opacity: 0;
+    animation: glowFadeIn 1.2s ease 0.9s forwards;
+    filter: blur(12px);
+  }
+  .punchcard.entered::before {
+    opacity: 1;
+    animation: none;
+  }
+  @keyframes glowFadeIn {
+    to { opacity: 1; }
+  }
+  /* Subtle shine sweep across the card */
+  .punchcard::after {
+    content: "";
+    position: absolute;
+    top: 0; left: -75%;
+    width: 50%; height: 100%;
+    background: linear-gradient(
+      105deg,
+      transparent 0%,
+      rgba(250,250,246,0.06) 40%,
+      rgba(250,250,246,0.12) 50%,
+      rgba(250,250,246,0.06) 60%,
+      transparent 100%
+    );
+    border-radius: 10px;
+    animation: shineSweep 2.4s cubic-bezier(0.22, 1, 0.36, 1) 1.2s forwards;
+    pointer-events: none;
+  }
+  .punchcard.entered::after {
+    animation: none;
+    left: 125%;
+  }
+  @keyframes shineSweep {
+    to { left: 125%; }
+  }
+  /* Hover: smooth enlarge with subtle 3D lift */
+  .punchcard.entered:hover {
+    transform: scale(1.06) translateY(-6px);
+    box-shadow: 0 28px 60px -16px rgba(22,32,26,0.28),
+                0 8px 24px -8px rgba(107,143,78,0.15);
+  }
+  /* ---- Card inner elements stagger ---- */
+  .punchcard-top{
+    display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:22px;
+    opacity: 0;
+    animation: fadeSlideUp 0.6s ease 0.8s forwards;
+  }
+  .punchcard-top .label{
+    font-family:'Space Mono', monospace; font-size:0.68rem;
+    letter-spacing:0.09em; text-transform:uppercase; opacity:0.55;
+  }
+  .punchcard-top .name{ font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:1.1rem; margin-top:4px; }
+  .punchcard-grid{
+    display:grid; grid-template-columns: repeat(6,1fr); gap:12px; margin-bottom:20px;
+  }
+  /* Stamp animation */
+  .stamp{
+    aspect-ratio:1; border-radius:50%;
+    border:1.5px solid rgba(250,250,246,0.25);
+    display:flex; align-items:center; justify-content:center;
+    opacity: 0;
+    transform: scale(0.5) rotate(-20deg);
+    transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+  }
+  .stamp svg{ width:52%; height:52%; }
+  .stamp.filled{ background: var(--matcha); border-color: var(--matcha); }
+  .stamp.filled svg{ stroke: var(--ink); }
+  .stamp:not(.filled) svg{ stroke: rgba(250,250,246,0.3); }
+  /* Each stamp pops in with delay */
+  .stamp.animate-in {
+    animation: stampPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  @keyframes stampPop {
+    0% {
+      opacity: 0;
+      transform: scale(0.3) rotate(-30deg);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.15) rotate(5deg);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+  }
+  /* Filled stamps get a green pulse on appear */
+  .stamp.filled.animate-in {
+    animation: stampPopFilled 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  @keyframes stampPopFilled {
+    0% {
+      opacity: 0;
+      transform: scale(0.3) rotate(-30deg);
+      box-shadow: 0 0 0 0 rgba(107,143,78,0);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.2) rotate(5deg);
+      box-shadow: 0 0 14px 4px rgba(107,143,78,0.35);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+      box-shadow: 0 0 0 0 rgba(107,143,78,0);
+    }
+  }
+  .punchcard-foot{
+    display:flex; justify-content:space-between; align-items:center;
+    font-family:'Space Mono', monospace; font-size:0.72rem; opacity:0;
+    border-top:1px dashed rgba(250,250,246,0.18); padding-top:14px;
+    animation: fadeSlideUp 0.6s ease 1.8s forwards;
+  }
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 0.7; transform: translateY(0); }
+  }
+  /* Stamp hover micro-interaction */
+  .stamp:hover {
+    transform: scale(1.18) rotate(6deg) !important;
+    border-color: var(--matcha);
+  }
+  .stamp.filled:hover {
+    box-shadow: 0 0 16px 4px rgba(107,143,78,0.3);
+  }
+  /* ---------------- Section shell ---------------- */
+  section{ padding:74px 0; }
+  .section-head{ max-width:600px; margin-bottom:44px; }
+  .section-head h2{ font-size: clamp(1.6rem, 2.8vw, 2.15rem); color: var(--ink); }
+  .section-head p{ margin-top:12px; color: var(--ink-soft); font-size:1rem; line-height:1.6; }
+  /* ---------------- Signature pours ---------------- */
+  .pours{ display:grid; grid-template-columns: repeat(3, 1fr); gap:1px; background: var(--line); border:1px solid var(--line); }
+  .pour{ background: var(--paper); padding:32px 26px; transition: background 0.3s ease; }
+  .pour:hover{ background: var(--paper-dim); }
+  .pour .swatch{
+    width:34px; height:34px; border-radius:50%; margin-bottom:20px;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .pour:hover .swatch{ transform: scale(1.2) rotate(10deg); }
+  .pour h3{ font-size:1.08rem; color:var(--ink); }
+  .pour .tag{
+    display:inline-block; margin-top:6px;
+    font-family:'Space Mono', monospace; font-size:0.68rem;
+    color: var(--matcha-deep); letter-spacing:0.05em; text-transform:uppercase;
+  }
+  .pour p{ margin-top:12px; font-size:0.9rem; line-height:1.55; color: var(--ink-soft); }
+  /* ---------------- How it works ---------------- */
+  .steps{ display:grid; grid-template-columns:repeat(3,1fr); border:1px solid var(--line); }
+  .step{ padding:30px 26px; transition: background 0.3s ease; }
+  .step:hover{ background: var(--paper-dim); }
+  .step + .step{ border-left:1px solid var(--line); }
+  .step .num{
+    font-family:'Space Mono', monospace; font-size:0.76rem; font-weight:700; color: var(--matcha-deep);
+    transition: transform 0.3s ease;
+  }
+  .step:hover .num{ transform: translateX(4px); }
+  .step h3{ font-size:1.08rem; margin-top:13px; margin-bottom:8px; color: var(--ink); }
+  .step p{ font-size:0.92rem; color: var(--ink-soft); line-height:1.55; margin:0; }
+  /* ---------------- Rewards ladder ---------------- */
+  .ladder{ border:1px solid var(--line); background: var(--paper); }
+  .rung{
+    display:grid; grid-template-columns:80px 1fr auto; align-items:center;
+    gap:20px; padding:20px 26px;
+    transition: background 0.25s ease, padding-left 0.3s ease;
+  }
+  .rung:hover{ background: var(--paper-dim); padding-left: 32px; }
+  .rung + .rung{ border-top:1px solid var(--line); }
+  .rung .count{ font-family:'Space Mono', monospace; font-weight:700; font-size:1.05rem; color: var(--matcha-deep); }
+  .rung .count span{ display:block; font-size:0.62rem; font-weight:400; letter-spacing:0.09em; text-transform:uppercase; color: var(--ink-soft); margin-top:2px; }
+  .rung .name{ font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:1.02rem; color: var(--ink); }
+  .rung .desc{ font-size:0.87rem; color: var(--ink-soft); margin-top:3px; }
+  .rung .tag{
+    font-size:0.68rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;
+    background: var(--matcha-pale); color: var(--matcha-deep);
+    padding:6px 12px; border-radius:999px; white-space:nowrap;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .rung:hover .tag{
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(107,143,78,0.2);
+  }
+  /* ---------------- Join ---------------- */
+  .join{ background: var(--ink); color: var(--paper); padding:56px; border-radius:10px; }
+  .join .wrap-inner{ display:grid; grid-template-columns:1fr 1fr; gap:50px; }
+  .join .section-head p{ color: rgba(250,250,246,0.68); }
+  .join .eyebrow{ color: var(--matcha-pale); }
+  .join .section-head h2{ color: var(--paper); }
+  form{ display:flex; flex-direction:column; gap:16px; }
+  .field label{ display:block; font-size:0.76rem; font-weight:600; margin-bottom:7px; color: rgba(250,250,246,0.78); }
+  .field input{
+    width:100%; background: rgba(250,250,246,0.07);
+    border:1px solid rgba(250,250,246,0.2);
+    border-radius: var(--radius);
+    padding:13px 15px; font-family:'Inter',sans-serif; font-size:0.94rem; color: var(--paper);
+    transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+  }
+  .field input::placeholder{ color: rgba(250,250,246,0.38); }
+  .field input:focus{
+    outline:none; border-color: var(--matcha);
+    background: rgba(250,250,246,0.1);
+    box-shadow: 0 0 0 3px rgba(107,143,78,0.15);
+  }
+  .join .btn{ background: var(--matcha); color: var(--ink); margin-top:6px; }
+  .join .btn:hover{ background:#7ea15b; }
+  .fine{ font-size:0.76rem; color: rgba(250,250,246,0.48); margin-top:4px; }
+  .success{
+    display:none; align-items:center; gap:12px;
+    background: rgba(107,143,78,0.16); border:1px solid rgba(107,143,78,0.4);
+    border-radius: var(--radius); padding:16px 18px; font-size:0.9rem;
+  }
+  .success.show{ display:flex; }
+  .success svg{ width:20px; height:20px; flex-shrink:0; stroke: var(--matcha-pale); }
+  .saved-list{
+    margin-top:14px; padding:14px 16px; border:1px solid rgba(250,250,246,0.14);
+    border-radius: var(--radius); background: rgba(250,250,246,0.05);
+  }
+  .saved-list-title{ font-size:0.76rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color: rgba(250,250,246,0.75); }
+  .saved-list ul{ list-style:none; padding:0; margin:10px 0 0; display:flex; flex-direction:column; gap:8px; }
+  .saved-list li{ display:flex; justify-content:space-between; gap:12px; font-size:0.9rem; color: var(--paper); }
+  .saved-list li span{ color: rgba(250,250,246,0.7); font-size:0.82rem; }
+  /* ---------------- Footer ---------------- */
+  footer{ padding:44px 0 60px; border-top:1px solid var(--line); }
+  footer .wrap{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; }
+  footer .meta{ font-size:0.83rem; color: var(--ink-soft); }
+  footer .meta.mono{ font-family:'Space Mono', monospace; font-size:0.76rem; }
+  /* ---------------- Reveal ---------------- */
+  .reveal{ opacity:0; transform:translateY(14px); transition:opacity .6s ease, transform .6s ease; }
+  .reveal.in{ opacity:1; transform:none; }
+  @media (prefers-reduced-motion: reduce){
+    .reveal{ opacity:1; transform:none; transition:none; }
+    .punchcard{ opacity:1; transform:none; animation:none; }
+    .punchcard::after{ animation:none; display:none; }
+    .punchcard::before{ animation:none; opacity:1; }
+    .punchcard-top{ opacity:0.7; animation:none; }
+    .punchcard-foot{ opacity:0.7; animation:none; }
+    .stamp{ opacity:1; transform:none; }
+    .card-float-wrap.floating{ animation:none; }
+    html{ scroll-behavior:auto; }
+  }
+  /* ---------------- Responsive ---------------- */
+  @media (max-width:860px){
+    .hero .wrap{ grid-template-columns:1fr; }
+    .card-stage{ order:-1; }
+    .pours{ grid-template-columns:1fr; }
+    .steps{ grid-template-columns:1fr; }
+    .step + .step{ border-left:none; border-top:1px solid var(--line); }
+    .join{ padding:34px 24px; }
+    .join .wrap-inner{ grid-template-columns:1fr; }
+    .rung{ grid-template-columns:56px 1fr; }
+    .rung .tag{ grid-column:2; justify-self:start; }
+    nav{ display:none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a href="#top" class="logo">
+      <img src="namlogo.png" alt="Neko and Matcha Logo" class="logo-img">
+    </a>
+
+    <style>
+    .logo-img {
+      width: 5cm;
+      height: 2cm;
+      object-fit: contain;
+      display: block;
+    }
+    </style>
+    <nav>
+      <a href="#pours">Signature pours</a>
+      <a href="#how">How it works</a>
+      <a href="#rewards">Rewards</a>
+      <a href="#join" class="btn small">Join free</a>
+    </nav>
+  </div>
+</header>
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <div class="eyebrow">Loyalty Program</div>
+        <h1>Tiny bar.<br>Obsessive matcha.</h1>
+        <p class="lead">Neko and Matcha is a specialty matcha bar in Bangalore — curated drinks, no filler. Come back for the Strawberry Cream, the Hazelnut Cream (still a city first), or the São Paulo Cold Coffee, and we'll keep count.</p>
+        <div class="hero-cta">
+          <a href="#join" class="btn">Get my card</a>
+          <a href="#how" class="btn ghost">See how it works</a>
+        </div>
+        <div class="footprint-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          Every pour crafted by hand · Bangalore
+        </div>
+      </div>
+      <div class="card-stage">
+        <div class="card-float-wrap" id="cardFloatWrap">
+          <div class="punchcard" id="punchcard">
+            <div class="punchcard-top">
+              <div>
+                <div class="label">Neko and Matcha</div>
+                <div class="name">Member Card</div>
+              </div>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(250,250,246,0.5)" stroke-width="1.6"><path d="M5 10h11a3 3 0 0 1 0 6H5z"/><path d="M5 10a3 3 0 0 1 3-3h5a3 3 0 0 1 3 3"/></svg>
+            </div>
+            <div class="punchcard-grid" id="stampGrid"></div>
+            <div class="punchcard-foot">
+              <span>4 of 6 stamped</span>
+              <span>2 to go</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="pours">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="eyebrow">Signature pours</div>
+        <h2>The three worth coming back for.</h2>
+        <p>A short, deliberate menu — every stamp you earn is for one of these.</p>
+      </div>
+      <div class="pours reveal">
+        <div class="pour">
+          <div class="swatch" style="background: var(--blush);"></div>
+          <h3>Strawberry Cream Matcha Latte</h3>
+          <span class="tag">Signature</span>
+          <p>Ceremonial-grade matcha layered with real strawberry and a light cream top — built to be sipped slow.</p>
+        </div>
+        <div class="pour">
+          <div class="swatch" style="background: var(--hazel);"></div>
+          <h3>Hazelnut Cream Matcha Latte</h3>
+          <span class="tag">Bangalore first</span>
+          <p>Toasted hazelnut and matcha, a pairing you won't find on another menu in the city yet.</p>
+        </div>
+        <div class="pour">
+          <div class="swatch" style="background: var(--ink);"></div>
+          <h3>São Paulo Cold Coffee</h3>
+          <span class="tag">For non-matcha days</span>
+          <p>A Brazilian-leaning cold coffee, bold and unsweetened at the base — for when you want contrast, not comfort.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="how">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="eyebrow">How it works</div>
+        <h2>Three steps, no app required.</h2>
+        <p>The card lives at the counter, not on your phone. Here's the entire process.</p>
+      </div>
+      <div class="steps reveal">
+        <div class="step">
+          <div class="num">01</div>
+          <h3>Order as usual</h3>
+          <p>Any signature pour counts — walk up, order, pay the way you already do.</p>
+        </div>
+        <div class="step">
+          <div class="num">02</div>
+          <h3>Mention your card</h3>
+          <p>New here? We'll set one up in seconds. Already a member? Just say so at the counter.</p>
+        </div>
+        <div class="step">
+          <div class="num">03</div>
+          <h3>Get stamped</h3>
+          <p>One stamp per drink. Six stamps in, your next one is free — no expiry.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="rewards">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="eyebrow">Rewards</div>
+        <h2>What your stamps turn into.</h2>
+        <p>Progress carries over after every redemption — there's no ceiling on how far the ladder goes.</p>
+      </div>
+      <div class="ladder reveal">
+        <div class="rung">
+          <div class="count">3<span>Stamps</span></div>
+          <div><div class="name">Size Up</div><div class="desc">Free upgrade to the next size, any drink.</div></div>
+          <div class="tag">Small treat</div>
+        </div>
+        <div class="rung">
+          <div class="count">6<span>Stamps</span></div>
+          <div><div class="name">On the House</div><div class="desc">One free signature pour — Strawberry, Hazelnut, or São Paulo Cold Coffee.</div></div>
+          <div class="tag">Most popular</div>
+        </div>
+        <div class="rung">
+          <div class="count">10<span>Stamps</span></div>
+          <div><div class="name">Regular Status</div><div class="desc">Free drink, plus first access to new seasonal pours before they launch.</div></div>
+          <div class="tag">Best value</div>
+        </div>
+        <div class="rung">
+          <div class="count">🎂<span>Yearly</span></div>
+          <div><div class="name">On Us</div><div class="desc">A free birthday drink, no stamps required — just tell us the date.</div></div>
+          <div class="tag">Birthday</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="join">
+    <div class="wrap">
+      <div class="join reveal">
+        <div class="wrap-inner">
+          <div class="section-head" style="margin-bottom:0;">
+            <div class="eyebrow">Join the program</div>
+            <h2>Get your card in under a minute.</h2>
+            <p>Fill this in and we'll have your card ready at the counter next visit. No spam — just matcha.</p>
+          </div>
+          <div>
+            <form id="joinForm">
+              <div class="field">
+                <label for="fname">Full name</label>
+                <input id="fname" type="text" placeholder="Ananya Rao" required>
+              </div>
+              <div class="field">
+                <label for="femail">Email</label>
+                <input id="femail" type="email" placeholder="you@email.com" required>
+              </div>
+              <div class="field">
+                <label for="fbday">Birthday <span style="opacity:.6; font-weight:400;">(for your free birthday drink)</span></label>
+                <input id="fbday" type="date">
+              </div>
+              <button type="submit" class="btn">Get my card</button>
+              <p class="fine">By joining you agree to receive occasional emails about rewards. Unsubscribe any time.</p>
+            </form>
+            <div class="success" id="successMsg">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              You're in! Show this confirmation at the counter to activate your card.
+            </div>
+            <div class="saved-list" id="savedList" style="display:none;">
+              <div class="saved-list-title">Recorded names</div>
+              <ul id="savedNamesList"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer>
+  <div class="wrap">
+        <a href="#top" class="logo">
+      <img src="namlogo.png" alt="Neko and Matcha Logo" class="logo-img">
+    </a>
+
+    <style>
+    .logo-img {
+      width: 5cm;
+      height: 2cm;
+      object-fit: contain;
+      display: block;
+    }
+    </style>
+    <div class="meta">Bangalore · Open daily, 8 am – 8 pm</div>
+    <div class="meta mono">Specialty Matcha Bar</div>
+  </div>
+</footer>
+<script>
+  /* ====== Stamp grid with staggered animation ====== */
+  const leafIcon = `<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10h11a3 3 0 0 1 0 6H5z"/><path d="M5 10a3 3 0 0 1 3-3h5a3 3 0 0 1 3 3"/></svg>`;
+  const grid = document.getElementById('stampGrid');
+  const filledCount = 4;
+  for (let i = 0; i < 6; i++) {
+    const el = document.createElement('div');
+    el.className = 'stamp' + (i < filledCount ? ' filled' : '');
+    el.innerHTML = leafIcon;
+    grid.appendChild(el);
+    // Stagger each stamp animation — starts after the card entry finishes
+    setTimeout(() => {
+      el.classList.add('animate-in');
+    }, 1100 + i * 140);
+  }
+  /* ====== After entry animation, lock card visible + start idle float ====== */
+  const card = document.getElementById('punchcard');
+  const floatWrap = document.getElementById('cardFloatWrap');
+  const cardStage = document.querySelector('.card-stage');
+  // Once the entry animation finishes, lock opacity:1 and start floating
+  setTimeout(() => {
+    card.classList.add('entered');
+    floatWrap.classList.add('floating');
+  }, 1500); // 0.3s delay + 1.1s duration + small buffer
+  /* ====== Interactive 3D tilt on mouse move ====== */
+  cardStage.addEventListener('mouseenter', () => {
+    // Pause the float while interacting
+    floatWrap.classList.remove('floating');
+    card.style.transition = 'transform 0.12s ease-out, box-shadow 0.3s ease';
+  });
+  cardStage.addEventListener('mousemove', (e) => {
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateY = ((x - centerX) / centerX) * 8;
+    const rotateX = ((centerY - y) / centerY) * 6;
+    card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px) scale(1.06)`;
+    card.style.boxShadow = `
+      ${-rotateY * 2}px ${rotateX * 2 + 20}px 50px -14px rgba(22,32,26,0.25),
+      ${-rotateY}px ${rotateX + 8}px 20px -6px rgba(107,143,78,0.12)
+    `;
+  });
+  cardStage.addEventListener('mouseleave', () => {
+    // Smoothly return to resting state
+    card.style.transition = 'transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.6s ease';
+    card.style.transform = '';
+    card.style.boxShadow = '';
+    // Resume floating after the ease-out finishes
+    setTimeout(() => {
+      floatWrap.classList.add('floating');
+      card.style.transition = '';
+    }, 650);
+  });
+  /* ====== Form handler ====== */
+  const form = document.getElementById('joinForm');
+  const success = document.getElementById('successMsg');
+  const savedList = document.getElementById('savedList');
+  const savedNamesList = document.getElementById('savedNamesList');
+  const storageKey = 'loyaltyMembers';
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function readMembers() {
+    try {
+      return JSON.parse(localStorage.getItem(storageKey)) || [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function saveMembers(members) {
+    localStorage.setItem(storageKey, JSON.stringify(members));
+  }
+
+  function renderMembers() {
+    const members = readMembers();
+    if (!members.length) {
+      savedList.style.display = 'none';
+      return;
+    }
+
+    savedList.style.display = 'block';
+    savedNamesList.innerHTML = members.map((member) => {
+      const name = member.name || 'Unnamed guest';
+      const email = member.email ? ` · ${member.email}` : '';
+      return `<li><strong>${escapeHtml(name)}</strong><span>${escapeHtml(email)}</span></li>`;
+    }).join('');
+  }
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('fname').value.trim();
+    const email = document.getElementById('femail').value.trim();
+    const birthday = document.getElementById('fbday').value;
+
+    if (!name || !email) {
+      return;
+    }
+
+    const members = readMembers();
+    members.unshift({
+      name,
+      email,
+      birthday,
+      submittedAt: new Date().toISOString()
+    });
+
+    saveMembers(members.slice(0, 20));
+    renderMembers();
+
+    form.reset();
+    success.classList.add('show');
+  });
+
+  renderMembers();
+  /* ====== Scroll reveals ====== */
+  const revealEls = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    revealEls.forEach(el => io.observe(el));
+  } else {
+    revealEls.forEach(el => el.classList.add('in'));
+  }
+</script>
+</body>
+</html>
